@@ -1,0 +1,127 @@
+---
+title: "Análisis Bivariado y Multivariado"
+author: "Brayan Ortega & Dylan Ariza"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+---
+
+::: {align="justify"}
+# Análisis Bivariado
+
+El análisis bivariado examina la relación entre dos variables para determinar si existe una asociación, correlación o causalidad entre ellas. En nuestro proyecto, es fundamental para identificar cómo el mercado valora el talento.
+
+## 1. Relación: Rendimiento (Overall) vs. Valor de Mercado (Value)
+
+Esta es la relación clave para detectar jugadores infravalorados. Buscamos aquellos que tienen un alto rendimiento pero cuyo precio no ha escalado proporcionalmente.
+:::
+
+```{r}
+library(dplyr)
+library(ggplot2)
+
+# Filtramos datos para una visualización clara (Muestra competitiva)
+df_biv <- datos_futbol %>% 
+  filter(overall >= 70 & value_eur > 0)
+
+# Gráfico de dispersión con línea de tendencia
+ggplot(df_biv, aes(x = overall, y = value_eur)) +
+  geom_point(aes(color = age), alpha = 0.5) +
+  geom_smooth(method = "gam", color = "red", linetype = "dashed") +
+  theme_minimal() +
+  labs(title = "Relación: Calidad (Overall) vs. Precio (Value)",
+       x = "Nivel de Habilidad (Overall)", 
+       y = "Valor de Mercado (EUR)")
+```
+
+::: {align="justify"}
+### Interpretación y Conclusión:
+
+**La relación es exponencial:** a partir de los 85 puntos de overall, el precio se dispara. **Conclusión Preliminar:** Los jugadores que se encuentran debajo de la línea roja son los sujetos de estudio para nuestra H1, ya que ofrecen un rendimiento superior al precio que el mercado les asigna actualmente.
+
+# 2. Relación: Edad vs. Potencial de Crecimiento
+
+Para validar nuestra H2, analizamos si la juventud garantiza un mayor margen de progresión técnica.
+:::
+
+```{r}
+# Calculamos el margen de mejora
+df_biv <- df_biv %>% mutate(margen = potential - overall)
+
+ggplot(df_biv, aes(x = age, y = margen)) +
+  geom_jitter(color = "darkgreen", alpha = 0.4) +
+  theme_minimal() +
+  labs(title = "Margen de Mejora por Edad",
+       x = "Edad del Jugador", y = "Puntos de Potencial por ganar")
+```
+
+:::: {align="justify"}
+### Conclusión:
+
+**Existe una correlación negativa fuerte:** a mayor edad, menor margen de mejora. **Conclusión Técnica:** La "ventana de revelación" para el Mundial 2026 se concentra entre los 18 y 23 años. Después de los 25, el potencial se estabiliza, confirmando parte de nuestra H2.
+
+# Análisis Multivariado
+
+El análisis multivariado estudia el comportamiento simultáneo de tres o más variables. Es la base de nuestra Justificación Técnica mediante Distancias Euclidianas.
+
+## 1. Matriz de Correlación
+
+Permite ver cómo interactúan todas las dimensiones de rendimiento (Pase, Tiro, Físico, etc.) simultáneamente.
+
+```{r}
+library(corrplot)
+
+# Seleccionamos variables de rendimiento puro
+df_multi <- df_biv %>% 
+  select(age, overall, potential, value_eur, pace, shooting, passing, dribbling, defending, physic)
+
+# Calculamos matriz de correlación
+cor_matrix <- cor(df_multi, use = "complete.obs")
+
+# Visualización
+corrplot(cor_matrix, method = "color", type = "upper", 
+         tl.col = "black", addCoef.col = "black", number.cex = 0.7)
+```
+
+::: {align="justify"}
+### Interpretación:
+
+El dribbling y el passing son las variables técnicas que más correlacionan con el value_eur. **Conclusión:** El mercado premia más la capacidad de creación que la defensa o el físico, lo cual orienta nuestro modelo de clasificación hacia perfiles creativos.
+
+## 2. Dispersión Multidimensional de Talento (Bubble Chart)
+
+Este análisis permite visualizar la interacción entre la calidad actual, la proyección y el costo, segmentado por la edad del jugador. Es fundamental para identificar visualmente a los sujetos que cumplen con la H1.
+:::
+
+```{r}
+# Filtramos una muestra representativa (Jugadores top de las 7 selecciones)
+df_bubble <- df_futbol %>% 
+  filter(nationality_name %in% paises_objetivo) %>%
+  filter(overall >= 75) # Solo nivel selección
+
+ggplot(df_bubble, aes(x = overall, y = potential, size = value_eur, color = age)) +
+  geom_point(alpha = 0.6) +
+  scale_size_continuous(range = c(1, 15)) + # Ajusta el tamaño de las burbujas
+  scale_color_viridis_c() + # Escala de colores profesional
+  theme_minimal() +
+  labs(title = "Análisis Multidimensional: Overall vs. Potential",
+       subtitle = "Tamaño: Valor de Mercado | Color: Edad",
+       x = "Calidad Actual (Overall)", 
+       y = "Proyección (Potential)",
+       size = "Valor (EUR)", 
+       color = "Edad")
+```
+
+### Interpretación Multivariada:
+
+**Cuadrante Superior Derecho:** Aquí se ubican las "Estrellas Consagradas" (Alto Overall, Alto Potencial). Notamos que las burbujas son más grandes, indicando valores de mercado elevados.
+
+**Burbujas Pequeñas en la Parte Alta:** Estos son los sujetos de interés para nuestra H1. Son jugadores con un potential muy alto (arriba de 85) pero cuyo tamaño de burbuja es reducido.
+
+**Relación con H2:** El color (Edad) muestra que los jugadores más jóvenes (colores oscuros/morados) dominan la parte superior del gráfico, validando que el potencial es inversamente proporcional a la edad.
+
+### Conclusión:
+
+El análisis multivariado confirma que el valor de mercado (tamaño) no siempre crece en la misma proporción que el potencial. Existen "burbujas pequeñas" situadas en niveles de potencial de élite; estos sujetos representan las revelaciones estadísticas que el modelo busca predecir, ya que su rendimiento multidimensional supera su valoración económica actual.
+::::
