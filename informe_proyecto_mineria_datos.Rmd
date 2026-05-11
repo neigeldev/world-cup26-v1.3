@@ -1,7 +1,7 @@
 ---
 title: "Proyecto Minería de Datos - Ranking FIFA Mundial 2022 (SOFIFA)"
 subtitle: "Ciclo KDD - Selección, limpieza, transformación, minería e interpretación"
-author: "Informe generado con R Markdown"
+author: "Brayan Ortega & Dylan Ariza"
 date: "`r Sys.Date()`"
 lang: es
 output:
